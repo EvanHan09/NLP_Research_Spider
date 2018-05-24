@@ -30,11 +30,11 @@ class Spider(object):
             time.sleep(random.randint(9, 12))
             title = title.lower()
             key_words = '+'.join(title.split())
-            url = 'https://xueshu.glgoo.com/scholar?q=' + key_words + '&hl=zh-CN'
+            url = 'https://x.zhoupen.cn/scholar?q=' + key_words + '&hl=zh-CN'
             req = urllib2.Request(url=url, headers=self.headers)
             html = self.opener.open(req).read().lower()
-            abs_rgx = '<h3 class="gs_rt">.*?' + title + '\.{0,}</a></h3>.*?<div class="gs_rs">(.*)?</div><div class="gs_fl">'
-            cited_rgx = '<h3 class="gs_rt">.*?' + title + '.*?<div class="gs_rs">.*?</div><div class="gs_fl"><a .*?>被引用次数：(\d{0,})</a>'
+            abs_rgx = '<h3 class="gs_rt".*?>.*?' + title + '\.{0,}</a></h3>.*?<div class="gs_rs">(.*)?</div><div class="gs_fl">'
+            cited_rgx = '<h3 class="gs_rt".*?>.*?' + title + '.*?<div class="gs_rs">.*?</div><div class="gs_fl"><a .*?>被引用次数：(\d{0,})</a>'
             abs_patten, cited_patten = re.compile(abs_rgx, re.S), re.compile(cited_rgx, re.S)
             abst, cited = abs_patten.findall(html), cited_patten.findall(html)
             if len(abst)!=0:
@@ -42,7 +42,7 @@ class Spider(object):
             if len(cited)!=0:
                 res[1] = cited[0]
         except Exception as msg:
-            print("error")
+            print("Cited number geting error.")
             logging.error(msg)
         finally:
             return res
@@ -51,10 +51,14 @@ class AnthologySpider(Spider):
     def __init__(self, keywords, years, events=None):
         Spider.__init__(self, keywords)
         self.base_url = r'https://www.aclweb.org/anthology/'
-        self.conf_dic = {'ACL':'P','CL':'J', 'COLING':'C', 'EACL':'E', 'EMNLP':'D', 'LREC':'L', 'NAACL':'N'}
+        self.conf_dic = {'ACL':'P','CL':'J', 'COLING':'C', \
+                         'EACL':'E', 'EMNLP':'D', 'LREC':'L',\
+                         'NAACL':'N', 'SemEval':'S', 'IJCNLP':'I'}
         if events == None:
             events = self.conf_dic.keys()
-        self.seeds = [map(lambda x: '/'.join([self.conf_dic[conf]] * 2) + str(x)[2:], range(years[0], years[1] + 1)) for conf in events if conf in self.conf_dic.keys()]
+        self.seeds = [map(lambda x: '/'.join([self.conf_dic[conf]] * 2)\
+                          + str(x)[2:], range(years[0], years[1] + 1))\
+                      for conf in events if conf in self.conf_dic.keys()]
 
     def __research(self):
         final_result = []
@@ -69,7 +73,8 @@ class AnthologySpider(Spider):
                 try:
                     html = urllib2.urlopen(request).read()
                     cand_paper_list = self.patten.findall(html)
-                    papers_list = [list(item[::-1]) for item in cand_paper_list if self.keywords_patten.findall(item[-1].lower())]#title author link 
+                    papers_list = [list(item[::-1]) for item in cand_paper_list\
+                                   if self.keywords_patten.findall(item[-1].lower())]#title author link 
                     for i, item in enumerate(papers_list):
                         if i+1 < len(papers_list):
                             print '%d%% |' % ((i+1) * 100/len(papers_list)), '#' * ((i+1)*60/len(papers_list)), '\r',
@@ -87,7 +92,7 @@ class AnthologySpider(Spider):
 
     def run(self):
         self.keywords_patten =re.compile('|'.join(self.keywords))
-        self.patten = re.compile(r'([A-Z]\d{2}-\d{4}\.pdf).*?<b>(.*)?</b><br><i>(.*)?</i>')#link author title
+        self.patten = re.compile(r'([A-Z]\d{2}-\d{4}\.pdf).*?<b>(.*)?</b><br><i>(.*)?</i>')#link, author, title
         self.__research()
 
 class DblpSpider(Spider):
@@ -108,8 +113,7 @@ def start_demo(keywords, years, events):
     logging.info("\nDone! Seconds cost:"+str((end_time - start_time).seconds))
 
 if __name__ == '__main__':
-    years = (2003, 2016)
-    keywords = ['semi']
-    #keywords = ['sentence','word','embedding','representation']
+    years = (2013, 2017)
+    keywords = ['sentiment']
     events = ['ACL', 'CL', 'COLING', 'EACL', 'EMNLP', 'LREC', 'NAACL']
     start_demo(keywords, years, events)
